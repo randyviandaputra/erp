@@ -4,7 +4,7 @@ A modern, full-stack ERP (Enterprise Resource Planning) system built with React,
 
 ## 🚀 Quick Start
 
-### Option 1: Docker (Recommended)
+### Option 1: Docker
 
 #### Prerequisites
 
@@ -35,7 +35,7 @@ A modern, full-stack ERP (Enterprise Resource Planning) system built with React,
    docker-compose down
    ```
 
-### Option 2: Manual Setup (Local Development)
+### Option 2: Manual Setup (Local Development) (Recomendation)
 
 #### Prerequisites
 
