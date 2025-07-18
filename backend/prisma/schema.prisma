@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  String     @id @default(uuid())
+  name                String
+  email               String     @unique
+  password            String
+  role                Role
+  customer            Customer?  @relation("UserCustomer")
+  quotationsCreated   Quotation[] @relation("CreatedBy")
+  quotationsApproved  Quotation[] @relation("ApprovedBy")
+  salesOrdersCreated  SalesOrder[]
+  statusChanges       StatusHistory[]
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+
+  @@map("users")
+}
+
+model Customer {
+  id          String   @id @default(uuid())
+  name        String
+  userId      String   @unique
+  user        User     @relation("UserCustomer", fields: [userId], references: [id])
+  quotations  Quotation[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("customers")
+}
+
+model Product {
+  id             String           @id @default(uuid())
+  name           String
+  price          Float
+  quotationItems QuotationItem[]
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@map("products")
+}
+
+model Quotation {
+  id            String           @id @default(uuid())
+  customer      Customer         @relation(fields: [customerId], references: [id])
+  customerId    String
+  status        QuotationStatus @default(PENDING)
+  items         QuotationItem[]
+  salesOrders   SalesOrder[]
+  statusHistory StatusHistory[]
+  createdBy     User            @relation("CreatedBy", fields: [createdById], references: [id])
+  createdById   String
+  approvedBy    User?           @relation("ApprovedBy", fields: [approvedById], references: [id])
+  approvedById  String?
+  createdAt     DateTime        @default(now())
+  approvedAt    DateTime?
+  updatedAt     DateTime        @updatedAt
+
+  @@map("quotations")
+}
+
+model QuotationItem {
+  id           String    @id @default(uuid())
+  quotation    Quotation @relation(fields: [quotationId], references: [id])
+  quotationId  String
+  product      Product   @relation(fields: [productId], references: [id])
+  productId    String
+  quantity     Int
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("quotation_items")
+}
+
+model SalesOrder {
+  id           String     @id @default(uuid())
+  quotation    Quotation  @relation(fields: [quotationId], references: [id])
+  quotationId  String
+  createdBy    User       @relation(fields: [createdById], references: [id])
+  createdById  String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@map("sales_orders")
+}
+
+model StatusHistory {
+  id           String           @id @default(uuid())
+  quotation    Quotation        @relation(fields: [quotationId], references: [id])
+  quotationId  String
+  status       QuotationStatus
+  changedBy    User             @relation(fields: [changedById], references: [id])
+  changedById  String
+  timestamp    DateTime         @default(now())
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@map("status_histories")
+}
+
+enum Role {
+  ADMIN
+  SALES
+  CUSTOMER
+}
+
+enum QuotationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELED
+}

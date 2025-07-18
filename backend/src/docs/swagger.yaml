@@ -1,0 +1,209 @@
+openapi: 3.0.0
+info:
+  title: ERP Quotation API
+  version: 1.0.0
+  description: |
+    This API allows users to manage:
+      - Quotations
+      - Sales Orders
+      - Users (login/register)
+    Includes role-based access control (ADMIN, SALES, CUSTOMER) and audit fields.
+
+servers:
+  - url: http://localhost:4000
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+
+    RegisterRequest:
+      type: object
+      required: [name, email, password, role]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        role:
+          type: string
+          enum: [ADMIN, SALES, CUSTOMER]
+
+    CreateQuotationRequest:
+      type: object
+      required: [customerId, items]
+      properties:
+        customerId:
+          type: string
+        items:
+          type: array
+          items:
+            type: object
+            required: [productId, quantity]
+            properties:
+              productId:
+                type: string
+              quantity:
+                type: integer
+
+    ApproveQuotationParams:
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: string
+
+    CreateSalesOrderRequest:
+      type: object
+      required: [quotationId]
+      properties:
+        quotationId:
+          type: string
+
+paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User registered successfully
+        '400':
+          description: Email already exists
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login user and get token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: JWT token returned
+        '401':
+          description: Invalid credentials
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Get current logged-in user info
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Authenticated user info
+        '401':
+          description: Unauthorized
+
+  /quotations:
+    post:
+      tags: [Quotations]
+      summary: Create a new quotation
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateQuotationRequest'
+      responses:
+        '201':
+          description: Quotation created successfully
+
+    get:
+      tags: [Quotations]
+      summary: Get all quotations
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of all quotations
+
+  /quotations/{id}:
+    get:
+      tags: [Quotations]
+      summary: Get quotation by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Quotation found
+        '404':
+          description: Not found
+
+  /quotations/{id}/approve:
+    put:
+      tags: [Quotations]
+      summary: Approve a quotation
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Quotation approved
+        '403':
+          description: Forbidden
+        '404':
+          description: Quotation not found
+
+  /sales-orders:
+    post:
+      tags: [Sales Orders]
+      summary: Create sales order from approved quotation
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSalesOrderRequest'
+      responses:
+        '201':
+          description: Sales order created
+        '400':
+          description: Invalid request
+
+    get:
+      tags: [Sales Orders]
+      summary: Get all sales orders
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of sales orders

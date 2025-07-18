@@ -1,0 +1,83 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: erp-postgres-dev
+    environment:
+      POSTGRES_DB: erp_db_dev
+      POSTGRES_USER: erp_user
+      POSTGRES_PASSWORD: erp_password
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - erp-network-dev
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U erp_user -d erp_db_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API (Development)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: erp-backend-dev
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://erp_user:erp_password@postgres:5432/erp_db_dev
+      PORT: 4000
+      JWT_SECRET: dev-jwt-secret-key
+    ports:
+      - "4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - erp-network-dev
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    command: npm run dev
+
+  # Frontend React App (Development)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: erp-frontend-dev
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - erp-network-dev
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=http://localhost:4000
+    command: npm run dev
+
+  # Redis (optional, for caching and sessions)
+  redis:
+    image: redis:7-alpine
+    container_name: erp-redis-dev
+    ports:
+      - "6379:6379"
+    networks:
+      - erp-network-dev
+    volumes:
+      - redis_data_dev:/data
+
+volumes:
+  postgres_data_dev:
+    driver: local
+  redis_data_dev:
+    driver: local
+
+networks:
+  erp-network-dev:
+    driver: bridge 
